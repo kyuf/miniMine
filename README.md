@@ -1,0 +1,2 @@
+# miniMine
+small ruby projects
