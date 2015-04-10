@@ -90,15 +90,60 @@ def startSpace
   return space
 end
 
-#define move function
-def move(notation) #takes in standard notation. only castling is hyphened
+#define conversion of notation space to number space
+def noteToSpace(note)
+  return (note[0].ord - 97) + 8 * (note[1].to_i - 1)
+end
+
+#define move function. returns multidimensional with legality and spaces to be updated
+#move(notation)[0] is [boolean]
+#move(notation)[1] is space
+def move(notation, space, player) #takes in PGN notation, space, and player color
   #allowable moves determined by moveset and position
   #determine legality from proposed new position: moveset(notation), return true or false
+  
+  #push pawn
+  if notation.length == 2
+    finalSpace = noteToSpace(notation)
+    #check if final space is available
+    if space[finalSpace] != "  "
+      return [false]
+    end
+    #calcultations based off player color
+    if player == "White"
+      if notation[1] == 1 or notation[1] == 2
+        return [false]
+      end
+      sign = 1
+      mark = "w"
+      front = "4"
+    else
+      if notation[1] == 7 or notation[1] == 8
+        return [false]
+      end
+      sign = -1
+      mark = "b"
+      front = "5"
+    end
+    
+    initialSpace = finalSpace - sign * 8
+    if space[initialSpace] == "#{mark}P"
+    elsif space[initialSpace] == "  " and notation[1] == front and space[initialSpace - sign * 8] == "#{mark}P"
+      initialSpace -= sign * 8
+    else
+      return [false]
+    end
+    space[finalSpace] = "#{mark}P"
+    space[initialSpace] = "  "
+  end
   #check for collision
   #check for check
   #check for checkmate
   #check for pin
   #update attacking squares
+
+  return [true, space]  
+
 end
 
 #main game
@@ -109,11 +154,18 @@ def playChess
   while true
     drawBoard(space)
     if turn % 2 == 1
-      print "White to play: "
+      player = "White"
     else
-      print "Black to play: "
+      player = "Black"
     end
+    print "#{player} to play: "
     notation = gets.chomp
+    moveMe = move(notation, space, player)
+      while moveMe[0] == false
+        print "Invalid notation. Please enter again: "
+        notation = gets.chomp
+        moveMe = move(notation, space, player)
+      end
     turn += 1
   end
 end
