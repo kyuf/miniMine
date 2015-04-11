@@ -1,2 +1,2 @@
-x = [false]
-puts x.length
+z = "d".ord - "e".ord
+puts z

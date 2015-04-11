@@ -95,34 +95,62 @@ def noteToSpace(note)
   return (note[0].ord - 97) + 8 * (note[1].to_i - 1)
 end
 
+#define target push checker. determines if space is available for push
+#input is space[finalSpace]
+def validPush(targetPush)
+  if targetPush != "  "
+    return false
+  end
+end
+
+#define target capture checker. determines if space is available for capture
+#input is space[finalSpace]
+def validCapture(targetCapture, mark)
+  if targetCapture[0] == mark
+    return false
+  end
+end
+
 #define move function. returns multidimensional with legality and spaces to be updated
 #move(notation)[0] is [boolean]
 #move(notation)[1] is space
 def move(notation, space, player) #takes in PGN notation, space, and player color
   #allowable moves determined by moveset and position
   #determine legality from proposed new position: moveset(notation), return true or false
+  #check for collision
+  #check for check
+  #check for checkmate
+  #check for pin
+  #update attacking squares
+  
+  #assign proper mark based on player color
+  if player == "White"
+    mark = "w"
+  else
+    mark = "b"
+  end
   
   #push pawn
   if notation.length == 2
     finalSpace = noteToSpace(notation)
-    #check if final space is available
-    if space[finalSpace] != "  "
+    
+    #check if push is valid
+    if validPush(space[finalSpace]) == false
       return [false]
     end
-    #calcultations based off player color
-    if player == "White"
+    
+    #calcultations based off mark
+    if mark == "w"
       if notation[1] == 1 or notation[1] == 2
         return [false]
       end
       sign = 1
-      mark = "w"
       front = "4"
     else
       if notation[1] == 7 or notation[1] == 8
         return [false]
       end
       sign = -1
-      mark = "b"
       front = "5"
     end
     
@@ -136,12 +164,42 @@ def move(notation, space, player) #takes in PGN notation, space, and player colo
     space[finalSpace] = "#{mark}P"
     space[initialSpace] = "  "
   end
-  #check for collision
-  #check for check
-  #check for checkmate
-  #check for pin
-  #update attacking squares
-
+  
+  #pawn capture
+  if notation[1] == "x" and notation[0] == notation[0].downcase
+    finalSpace = noteToSpace(notation[2] + notation[3])
+    
+    #check if valid capture
+    if validCapture(space[finalSpace], mark) == false
+      puts "Invalid capture"
+      return [false]
+    end
+    
+    #check if columns of initial and final spaces are adjacent
+    adjCol = notation[2].ord - notation[0].ord
+    if adjCol.abs != 1
+      puts "Not adjacent"
+      return [false]
+    end
+    
+    #calculations base off mark
+    if mark == "w"
+      sign = 1
+    else
+      sign = -1
+    end
+    
+    initialSpace = finalSpace - 8 * sign - adjCol
+    if space[initialSpace] == "#{mark}P"
+      space[initialSpace] = "  "
+      space[finalSpace] = "#{mark}P"
+    else
+      puts "Pawn not found"
+      return [false]
+    end
+    
+  end
+  
   return [true, space]  
 
 end
