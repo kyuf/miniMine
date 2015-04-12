@@ -111,6 +111,16 @@ def validCapture(targetCapture, mark)
   end
 end
 
+#define promotion checker
+#returns true if pawn is to be promoted
+def promotion?(targetSpace, mark)
+  if (targetSpace >= 56 and mark == "w") or (targetSpace <= 7 and mark == "b")
+    return true
+  else
+    return false
+  end
+end
+
 #define move function. returns multidimensional with legality and spaces to be updated
 #move(notation)[0] is [boolean]
 #move(notation)[1] is space
@@ -132,7 +142,7 @@ def move(notation, space, player, enPassant) #takes in PGN notation, space, play
   
   #push pawn
   flagDouble = false
-  if notation.length == 2
+  if notation[0] == notation[0].downcase and notation[1] != "x"
     finalSpace = noteToSpace(notation)
     
     #check if push is valid
@@ -163,8 +173,6 @@ def move(notation, space, player, enPassant) #takes in PGN notation, space, play
     else
       return [false]
     end
-    space[finalSpace] = "#{mark}P"
-    space[initialSpace] = "  "
   end
   
   #pawn capture
@@ -172,7 +180,7 @@ def move(notation, space, player, enPassant) #takes in PGN notation, space, play
     finalSpace = noteToSpace(notation[2] + notation[3])
     
     #flag for en passant first
-    flagEnPassant = enPassant[2] - enPassant[1] == 1 ? true : false
+    flagEnPassant = (enPassant[2] - enPassant[1] == 1 and space[finalSpace] == "  ") ? true : false
     
     #check if valid capture
     if validCapture(space[finalSpace], mark) == false and flagEnPassant == false
@@ -196,10 +204,7 @@ def move(notation, space, player, enPassant) #takes in PGN notation, space, play
     
     initialSpace = finalSpace - sign - adjCol
     #normal capture calculation
-    if space[initialSpace] == "#{mark}P"
-      space[initialSpace] = "  "
-      space[finalSpace] = "#{mark}P"
-    else
+    if space[initialSpace] != "#{mark}P"
       puts "Pawn not found"
       return [false]
     end    
@@ -213,6 +218,26 @@ def move(notation, space, player, enPassant) #takes in PGN notation, space, play
       end
     end
   end
+  
+  #promotion check
+  if !(promotion?(finalSpace, mark))
+      space[finalSpace] = "#{mark}P"
+  else
+    if notation[notation.length - 2] != "="
+      puts "Call promotion (=)"
+      return [false]
+    end
+    #Assign promotion value
+    space[finalSpace] = case notation[notation.length - 1]
+    when "Q", "R", "B", "N" then "#{mark}#{notation[notation.length - 1]}"
+    else
+      puts "Designate promotion"
+      return [false]
+    end
+  end
+  
+  #clear initial space
+  space[initialSpace] = "  "
   
   if flagDouble == false
     return [true, space]
