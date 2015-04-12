@@ -106,7 +106,7 @@ end
 #define target capture checker. determines if space is available for capture
 #input is space[finalSpace]
 def validCapture(targetCapture, mark)
-  if targetCapture[0] == mark
+  if targetCapture[0] == mark or targetCapture == "  "
     return false
   end
 end
@@ -114,7 +114,7 @@ end
 #define move function. returns multidimensional with legality and spaces to be updated
 #move(notation)[0] is [boolean]
 #move(notation)[1] is space
-def move(notation, space, player) #takes in PGN notation, space, and player color
+def move(notation, space, player, enPassant) #takes in PGN notation, space, player color, en passant flag
   #allowable moves determined by moveset and position
   #determine legality from proposed new position: moveset(notation), return true or false
   #check for collision
@@ -131,6 +131,7 @@ def move(notation, space, player) #takes in PGN notation, space, and player colo
   end
   
   #push pawn
+  flagDouble = false
   if notation.length == 2
     finalSpace = noteToSpace(notation)
     
@@ -144,20 +145,21 @@ def move(notation, space, player) #takes in PGN notation, space, and player colo
       if notation[1] == 1 or notation[1] == 2
         return [false]
       end
-      sign = 1
+      sign = 8
       front = "4"
     else
       if notation[1] == 7 or notation[1] == 8
         return [false]
       end
-      sign = -1
+      sign = -8
       front = "5"
     end
     
-    initialSpace = finalSpace - sign * 8
+    initialSpace = finalSpace - sign
     if space[initialSpace] == "#{mark}P"
-    elsif space[initialSpace] == "  " and notation[1] == front and space[initialSpace - sign * 8] == "#{mark}P"
-      initialSpace -= sign * 8
+    elsif space[initialSpace] == "  " and notation[1] == front and space[initialSpace - sign] == "#{mark}P"
+      initialSpace -= sign
+      flagDouble = true
     else
       return [false]
     end
@@ -169,8 +171,11 @@ def move(notation, space, player) #takes in PGN notation, space, and player colo
   if notation[1] == "x" and notation[0] == notation[0].downcase
     finalSpace = noteToSpace(notation[2] + notation[3])
     
+    #flag for en passant first
+    flagEnPassant = enPassant[2] - enPassant[1] == 1 ? true : false
+    
     #check if valid capture
-    if validCapture(space[finalSpace], mark) == false
+    if validCapture(space[finalSpace], mark) == false and flagEnPassant == false
       puts "Invalid capture"
       return [false]
     end
@@ -182,25 +187,38 @@ def move(notation, space, player) #takes in PGN notation, space, and player colo
       return [false]
     end
     
-    #calculations base off mark
+    #calculations based off mark
     if mark == "w"
-      sign = 1
+      sign = 8
     else
-      sign = -1
+      sign = -8
     end
     
-    initialSpace = finalSpace - 8 * sign - adjCol
+    initialSpace = finalSpace - sign - adjCol
+    #normal capture calculation
     if space[initialSpace] == "#{mark}P"
       space[initialSpace] = "  "
       space[finalSpace] = "#{mark}P"
     else
       puts "Pawn not found"
       return [false]
+    end    
+    #en passant calculation
+    if flagEnPassant == true
+      if finalSpace - sign == enPassant[0] and enPassant[2] - enPassant[1] == 1
+        space[enPassant[0]] = "  "
+      else
+        puts "En Passant fail"
+        return [false]
+      end
     end
-    
   end
   
-  return [true, space]  
+  if flagDouble == false
+    return [true, space]
+  else
+    return [true, space, finalSpace]
+  end
 
 end
 
@@ -208,9 +226,12 @@ end
 def playChess
   #draw starting board
   space = startSpace
+  #en passant array has [vulnearable pawn space, vulnearble turn, current turn]
+  enPassant = Array.new(3, 0)
   turn = 1
   while true
     drawBoard(space)
+    enPassant[2] = turn
     if turn % 2 == 1
       player = "White"
     else
@@ -218,12 +239,23 @@ def playChess
     end
     print "#{player} to play: "
     notation = gets.chomp
-    moveMe = move(notation, space, player)
+    
+    #moveMe can store 3 possibillities
+    #invalid move: moveMe = [false]
+    #valid move: moveMe = [true, space array]
+    #en passant flag: moveMe = [true, space array, pawn space]
+    moveMe = move(notation, space, player, enPassant)
       while moveMe[0] == false
         print "Invalid notation. Please enter again: "
         notation = gets.chomp
-        moveMe = move(notation, space, player)
+        moveMe = move(notation, space, player, enPassant)
       end
+    
+    #if en passant flag, store vulnerable pawn space and turn number
+    if moveMe.length == 3
+      enPassant[0] = moveMe[2]
+      enPassant[1] = turn
+    end
     turn += 1
   end
 end

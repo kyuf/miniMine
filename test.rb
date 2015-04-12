@@ -1,2 +1,3 @@
-z = "d".ord - "e".ord
-puts z
+x = " "
+flagEnPassant = x == "  " ? true : false
+puts flagEnPassant
